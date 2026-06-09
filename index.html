@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Life Command Center</title>
+</head>
+
+<body>
+
+<h1>Life Command Center</h1>
+
+<input id="task">
+
+<button onclick="saveTask()">
+Add Task
+</button>
+
+<script>
+
+async function saveTask(){
+
+let task=document.getElementById("task").value;
+
+await fetch("/add",{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/x-www-form-urlencoded"
+},
+
+body:"task="+task
+
+});
+
+alert("Task Added");
+
+}
+
+</script>
+
+</body>
+
+</html>

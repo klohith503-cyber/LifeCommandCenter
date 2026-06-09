@@ -5,8 +5,8 @@ import sqlite3
 app = FastAPI()
 
 conn = sqlite3.connect(
-"life.db",
-check_same_thread=False
+    "life.db",
+    check_same_thread=False
 )
 
 cursor = conn.cursor()
@@ -20,29 +20,24 @@ task TEXT
 
 conn.commit()
 
+
 @app.get("/", response_class=HTMLResponse)
 async def home():
 
-```
-cursor.execute(
-    "SELECT task FROM tasks"
-)
+    cursor.execute("SELECT task FROM tasks")
 
-tasks = cursor.fetchall()
+    tasks = cursor.fetchall()
 
-task_html=""
+    task_html = ""
 
-for task in tasks:
-    task_html += f"""
+    for task in tasks:
+        task_html += f"""
+        <div class='task-card'>
+        {task[0]}
+        </div>
+        """
 
-    <div class='task-card'>
-    {task[0]}
-    </div>
-
-    """
-
-html=f"""
-```
+    html = f"""
 
 <!DOCTYPE html>
 
@@ -109,7 +104,6 @@ border-radius:10px;
 <body>
 
 <div class="sidebar">
-
 <h2>🚀 LifeOS</h2>
 
 <p>Dashboard</p>
@@ -157,29 +151,21 @@ Add
 
 """
 
-```
-return html
-```
+    return html
+
 
 @app.post("/add")
-async def add(task:str=Form(...)):
+async def add(task: str = Form(...)):
 
-```
-cursor.execute(
-"INSERT INTO tasks(task) VALUES(?)",
-(task,)
-)
+    cursor.execute(
+        "INSERT INTO tasks(task) VALUES(?)",
+        (task,)
+    )
 
-conn.commit()
+    conn.commit()
 
-return HTMLResponse(
-```
-
-"""
-
+    return HTMLResponse("""
 <script>
 window.location.href="/"
 </script>
-
-"""
-)
+""")

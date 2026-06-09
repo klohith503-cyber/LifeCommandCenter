@@ -244,17 +244,23 @@ Send
 @app.post("/chat")
 async def chat(message:str=Form(...)):
 
-    response=client.chat.completions.create(
+    if client:
+
+    response = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {
-            "role":"user",
-            "content":message
+                "role":"user",
+                "content":message
             }
         ]
     )
 
-    answer=response.choices[0].message.content
+    answer = response.choices[0].message.content
+
+else:
+
+    answer = "⚠️ OpenAI API key not added yet. Add OPENAI_API_KEY in Render Environment."
 
     chat_history.append(
     f"<b>You:</b> {message}"

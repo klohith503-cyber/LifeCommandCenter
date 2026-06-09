@@ -3,27 +3,19 @@
 <head>
 <title>Life Command Center</title>
 </head>
-
 <body>
-
 <h1>Life Command Center</h1>
-
 <input id="task" placeholder="Enter task">
 <button onclick="saveTask()">Add Task</button>
-
 <h2>Tasks</h2>
-
 <ul>
 {% for task in tasks %}
 <li>{{task}}</li>
 {% endfor %}
 </ul>
-
 <script>
 async function saveTask(){
-
 let task=document.getElementById("task").value;
-
 await fetch("/add",{
 method:"POST",
 headers:{
@@ -31,11 +23,8 @@ headers:{
 },
 body:"task="+encodeURIComponent(task)
 });
-
 window.location.reload();
-
 }
 </script>
-
 </body>
 </html>

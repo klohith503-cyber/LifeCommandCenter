@@ -1,15 +1,27 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
+from openai import OpenAI
 import sqlite3
+import os
 
 app = FastAPI()
+
+# ---------------- AI ----------------
+
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+
+chat_history=[]
+
+# ---------------- Database ----------------
 
 conn = sqlite3.connect(
     "life.db",
     check_same_thread=False
 )
 
-cursor = conn.cursor()
+cursor=conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tasks(
@@ -21,30 +33,8 @@ completed INTEGER DEFAULT 0
 
 conn.commit()
 
-chat_history=[]
 
-def ai_reply(msg):
-
-    msg=msg.lower()
-
-    if "study" in msg:
-        return "📚 Study Plan: 2 hrs learning + 1 hr practice + 30 min revision."
-
-    elif "motivate" in msg:
-        return "🔥 Keep moving. Small actions every day become big achievements."
-
-    elif "skill" in msg:
-        return "💻 Recommended skills: AI, Web Development, DSA, Cloud Computing."
-
-    elif "day" in msg:
-        return "🗓 Morning: Important work | Afternoon: Deep work | Evening: Revision"
-
-    elif "goal" in msg:
-        return "🎯 Break your goal into weekly and daily targets."
-
-    else:
-        return f"🤖 I understood: '{msg}'"
-
+# ---------------- Home ----------------
 
 @app.get("/",response_class=HTMLResponse)
 async def home():
@@ -66,28 +56,41 @@ async def home():
             checked="checked"
             completed+=1
 
-        task_html += f"""
-        <div class='task-card'>
+        task_html+=f"""
 
-        <div>
-        <input
-        type='checkbox'
-        onclick="window.location='/toggle/{task[0]}'"
-        {checked}>
-        {task[1]}
-        </div>
+<div class='task-card'>
 
-        <a href='/delete/{task[0]}'>
-        <button>Delete</button>
-        </a>
+<div>
 
-        </div>
-        """
+<input
+type='checkbox'
+onclick="window.location='/toggle/{task[0]}'"
+{checked}
+>
+
+{task[1]}
+
+</div>
+
+<a href='/delete/{task[0]}'>
+
+<button>
+
+Delete
+
+</button>
+
+</a>
+
+</div>
+
+"""
 
     chat_html=""
 
-    for c in chat_history:
-        chat_html+=f"<p>{c}</p>"
+    for msg in chat_history:
+
+        chat_html+=f"<p>{msg}</p>"
 
 
     return HTMLResponse(f"""
@@ -100,8 +103,8 @@ async def home():
 
 body{{
 margin:0;
-font-family:Arial;
 background:#0f172a;
+font-family:Arial;
 color:white;
 }}
 
@@ -128,7 +131,7 @@ margin-bottom:20px;
 .task-card{{
 display:flex;
 justify-content:space-between;
-padding:12px;
+padding:15px;
 background:#334155;
 margin-top:10px;
 border-radius:10px;
@@ -138,8 +141,8 @@ border-radius:10px;
 position:fixed;
 right:20px;
 bottom:20px;
-width:320px;
-height:420px;
+width:350px;
+height:450px;
 overflow:auto;
 background:#1e293b;
 padding:20px;
@@ -170,9 +173,13 @@ border-radius:10px;
 
 <h1>Life Command Center</h1>
 
-<h3>Tasks:{len(tasks)}</h3>
+<h3>Total Tasks:
+{len(tasks)}
+</h3>
 
-<h3>Completed:{completed}</h3>
+<h3>Completed:
+{completed}
+</h3>
 
 <form action="/add" method="post">
 
@@ -181,7 +188,9 @@ name="task"
 required>
 
 <button>
+
 Add Task
+
 </button>
 
 </form>
@@ -196,21 +205,27 @@ Add Task
 
 </div>
 
+
 <div class="ai-box">
 
-<h3>🤖 Life Assistant</h3>
+<h3>🤖 AI Assistant</h3>
 
 {chat_html}
 
-<form action="/chat" method="post">
+<form
+action="/chat"
+method="post"
+>
 
 <input
 name="message"
-placeholder="Ask AI"
+placeholder="Ask anything..."
 required>
 
 <button>
+
 Send
+
 </button>
 
 </form>
@@ -224,23 +239,37 @@ Send
 """)
 
 
+# ---------------- Chat ----------------
+
 @app.post("/chat")
 async def chat(message:str=Form(...)):
 
-    reply=ai_reply(message)
+    response=client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {
+            "role":"user",
+            "content":message
+            }
+        ]
+    )
+
+    answer=response.choices[0].message.content
 
     chat_history.append(
     f"<b>You:</b> {message}"
     )
 
     chat_history.append(
-    f"<b>AI:</b> {reply}"
+    f"<b>AI:</b> {answer}"
     )
 
     return HTMLResponse(
     "<script>window.location.href='/'</script>"
     )
 
+
+# ---------------- Add Task ----------------
 
 @app.post("/add")
 async def add(task:str=Form(...)):
@@ -257,6 +286,8 @@ async def add(task:str=Form(...)):
     )
 
 
+# ---------------- Delete ----------------
+
 @app.get("/delete/{id}")
 async def delete(id:int):
 
@@ -272,20 +303,19 @@ async def delete(id:int):
     )
 
 
+# ---------------- Toggle ----------------
+
 @app.get("/toggle/{id}")
 async def toggle(id:int):
 
     cursor.execute("""
-
     UPDATE tasks
     SET completed=
     CASE
-    WHEN completed=0
-    THEN 1
+    WHEN completed=0 THEN 1
     ELSE 0
     END
     WHERE id=?
-
     """,(id,))
 
     conn.commit()

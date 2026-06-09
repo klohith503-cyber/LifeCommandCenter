@@ -1,7 +1,5 @@
-
 <!DOCTYPE html>
 <html>
-
 <head>
 <title>Life Command Center</title>
 </head>
@@ -10,37 +8,34 @@
 
 <h1>Life Command Center</h1>
 
-<input id="task">
+<input id="task" placeholder="Enter task">
+<button onclick="saveTask()">Add Task</button>
 
-<button onclick="saveTask()">
-Add Task
-</button>
+<h2>Tasks</h2>
+
+<ul>
+{% for task in tasks %}
+<li>{{task}}</li>
+{% endfor %}
+</ul>
 
 <script>
-
 async function saveTask(){
 
 let task=document.getElementById("task").value;
 
 await fetch("/add",{
-
 method:"POST",
-
 headers:{
-"Content-Type":
-"application/x-www-form-urlencoded"
+"Content-Type":"application/x-www-form-urlencoded"
 },
-
-body:"task="+task
-
+body:"task="+encodeURIComponent(task)
 });
 
-alert("Task Added");
+window.location.reload();
 
 }
-
 </script>
 
 </body>
-
 </html>

@@ -1,3 +1,9 @@
+
+as Python code.
+
+Delete **everything** from `app.py` first, then paste **only the code below**. Do not copy any ``` lines above or below it.
+
+```python
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 import sqlite3
@@ -5,8 +11,8 @@ import sqlite3
 app = FastAPI()
 
 conn = sqlite3.connect(
-"life.db",
-check_same_thread=False
+    "life.db",
+    check_same_thread=False
 )
 
 cursor = conn.cursor()
@@ -20,47 +26,29 @@ task TEXT
 
 conn.commit()
 
-@app.get("/",response_class=HTMLResponse)
+
+@app.get("/", response_class=HTMLResponse)
 async def home():
 
-```
-cursor.execute(
-    "SELECT id,task FROM tasks"
-)
+    cursor.execute("SELECT id, task FROM tasks")
+    tasks = cursor.fetchall()
 
-tasks=cursor.fetchall()
+    task_html = ""
 
-task_html=""
+    for task in tasks:
 
-for task in tasks:
-
-    task_html+=f"""
-```
-
+        task_html += f"""
 <div class='task-card'>
-
 {task[1]}
-
 <a href="/delete/{task[0]}">
-
-<button>
-
-Delete
-
-</button>
-
+<button>Delete</button>
 </a>
-
 </div>
-
 """
 
-```
-html=f"""
-```
+    html = f"""
 
 <!DOCTYPE html>
-
 <html>
 
 <head>
@@ -70,12 +58,10 @@ html=f"""
 <style>
 
 body{{
-
 font-family:Arial;
 background:#0f172a;
 color:white;
 margin:0;
-
 }}
 
 .light{{
@@ -84,45 +70,30 @@ color:black;
 }}
 
 .sidebar{{
-
 position:fixed;
 height:100%;
 width:220px;
 background:#1e293b;
 padding:20px;
-
 }}
 
 .content{{
-
 margin-left:260px;
 padding:30px;
-
 }}
 
 .card{{
-
 background:#1e293b;
 padding:20px;
 border-radius:20px;
 margin-bottom:20px;
-
 }}
 
 .task-card{{
-
 background:#334155;
 padding:15px;
 margin-top:10px;
 border-radius:10px;
-
-animation:fade 0.5s;
-
-}}
-
-@keyframes fade{{
-from{{opacity:0}}
-to{{opacity:1}}
 }}
 
 </style>
@@ -136,9 +107,7 @@ to{{opacity:1}}
 <h2>🚀 LifeOS</h2>
 
 <button onclick="toggle()">
-
 Dark/Light
-
 </button>
 
 <h3 id="clock"></h3>
@@ -151,9 +120,7 @@ Dark/Light
 
 <h1>Life Command Center</h1>
 
-<h3>Total Tasks:
-{len(tasks)}
-</h3>
+<h3>Total Tasks: {len(tasks)}</h3>
 
 <form action="/add" method="post">
 
@@ -188,56 +155,47 @@ document.getElementById(
 }}
 
 setInterval(()=>{{
-
 document.getElementById(
 "clock"
-).innerHTML=
+).innerHTML =
 new Date().toLocaleTimeString()
-
 }},1000)
 
 </script>
 
 </body>
-
 </html>
 
 """
 
-```
-return html
-```
+    return html
+
 
 @app.post("/add")
-async def add(task:str=Form(...)):
+async def add(task: str = Form(...)):
 
-```
-cursor.execute(
-"INSERT INTO tasks(task) VALUES(?)",
-(task,)
-)
+    cursor.execute(
+    "INSERT INTO tasks(task) VALUES(?)",
+    (task,)
+    )
 
-conn.commit()
+    conn.commit()
 
-return HTMLResponse(
-```
-
+    return HTMLResponse(
 "<script>window.location.href='/'</script>"
 )
+
 
 @app.get("/delete/{id}")
 async def delete(id:int):
 
-```
-cursor.execute(
-"DELETE FROM tasks WHERE id=?",
-(id,)
-)
+    cursor.execute(
+    "DELETE FROM tasks WHERE id=?",
+    (id,)
+    )
 
-conn.commit()
+    conn.commit()
 
-return HTMLResponse(
-```
-
+    return HTMLResponse(
 "<script>window.location.href='/'</script>"
 )

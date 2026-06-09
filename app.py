@@ -5,34 +5,47 @@ import sqlite3
 app = FastAPI()
 
 conn = sqlite3.connect(
-    "life.db",
-    check_same_thread=False
+"life.db",
+check_same_thread=False
 )
 
 cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tasks(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task TEXT
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+task TEXT
 )
 """)
 
 conn.commit()
 
-
 @app.get("/", response_class=HTMLResponse)
 async def home():
 
-    cursor.execute(
-        "SELECT task FROM tasks"
-    )
+```
+cursor.execute(
+    "SELECT task FROM tasks"
+)
 
-    tasks = cursor.fetchall()
+tasks = cursor.fetchall()
 
-    html = """
+task_html=""
+
+for task in tasks:
+    task_html += f"""
+
+    <div class='task-card'>
+    {task[0]}
+    </div>
+
+    """
+
+html=f"""
+```
 
 <!DOCTYPE html>
+
 <html>
 
 <head>
@@ -41,26 +54,53 @@ async def home():
 
 <style>
 
-body{
+body{{
+background:#0f172a;
 font-family:Arial;
-background:#f5f7fb;
-padding:30px;
-}
+margin:0;
+color:white;
+}}
 
-.box{
-max-width:700px;
-margin:auto;
-background:white;
+.sidebar{{
+position:fixed;
+width:220px;
+height:100vh;
+background:#1e293b;
+padding:20px;
+}}
+
+.content{{
+margin-left:260px;
+padding:30px;
+}}
+
+.card{{
+background:#1e293b;
 padding:20px;
 border-radius:20px;
-}
+margin-bottom:20px;
+}}
 
-.task{
-background:#eef2ff;
-padding:10px;
+input{{
+padding:12px;
+width:300px;
+border-radius:10px;
+border:none;
+}}
+
+button{{
+padding:12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+}}
+
+.task-card{{
+background:#334155;
+padding:15px;
 margin-top:10px;
 border-radius:10px;
-}
+}}
 
 </style>
 
@@ -68,9 +108,23 @@ border-radius:10px;
 
 <body>
 
-<div class="box">
+<div class="sidebar">
 
-<h1>🚀 Life Command Center</h1>
+<h2>🚀 LifeOS</h2>
+
+<p>Dashboard</p>
+<p>Tasks</p>
+<p>Calendar</p>
+<p>Study Hub</p>
+<p>Finance</p>
+
+</div>
+
+<div class="content">
+
+<div class="card">
+
+<h1>Life Command Center</h1>
 
 <form action="/add" method="post">
 
@@ -80,44 +134,52 @@ placeholder="Enter task"
 required>
 
 <button>
-Add Task
+Add
 </button>
 
 </form>
 
+</div>
+
+<div class="card">
+
 <h2>Your Tasks</h2>
 
-"""
+{task_html}
 
-    for task in tasks:
-        html += f"""
-<div class="task">
-{task[0]}
 </div>
-"""
 
-    html += """
 </div>
 
 </body>
+
 </html>
+
 """
 
-    return html
-
+```
+return html
+```
 
 @app.post("/add")
-async def add(task: str = Form(...)):
+async def add(task:str=Form(...)):
 
-    cursor.execute(
-        "INSERT INTO tasks(task) VALUES(?)",
-        (task,)
-    )
+```
+cursor.execute(
+"INSERT INTO tasks(task) VALUES(?)",
+(task,)
+)
 
-    conn.commit()
+conn.commit()
 
-    return HTMLResponse("""
+return HTMLResponse(
+```
+
+"""
+
 <script>
 window.location.href="/"
 </script>
-""")
+
+"""
+)

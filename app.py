@@ -9,7 +9,7 @@ app = FastAPI()
 # ---------------- AI ----------------
 
 client = OpenAI(
-    api_key=os.getenv("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")
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 chat_history=[]

@@ -4,7 +4,6 @@ import sqlite3
 
 app = FastAPI()
 
-# Database
 conn = sqlite3.connect(
     "life.db",
     check_same_thread=False
@@ -14,87 +13,88 @@ cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tasks(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task TEXT,
-    completed INTEGER DEFAULT 0
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+task TEXT,
+completed INTEGER DEFAULT 0
 )
 """)
 
 conn.commit()
 
-assistant_message = "Hello 👋 Ask me anything."
+chat_history=[]
 
-# Simple built-in assistant
 def ai_reply(msg):
 
-    msg = msg.lower()
+    msg=msg.lower()
 
     if "study" in msg:
-        return "Study plan: 2 hrs learning + 1 hr practice + 30 min revision."
+        return "📚 Study Plan: 2 hrs learning + 1 hr practice + 30 min revision."
 
     elif "motivate" in msg:
-        return "Small daily actions create huge results."
+        return "🔥 Keep moving. Small actions every day become big achievements."
 
     elif "skill" in msg:
-        return "Recommended skills: AI, Web Development, Cloud, DSA."
+        return "💻 Recommended skills: AI, Web Development, DSA, Cloud Computing."
 
     elif "day" in msg:
-        return "Morning: Important work | Afternoon: Deep work | Evening: Revision"
+        return "🗓 Morning: Important work | Afternoon: Deep work | Evening: Revision"
 
     elif "goal" in msg:
-        return "Break large goals into weekly targets."
+        return "🎯 Break your goal into weekly and daily targets."
 
-    return "I'm your LifeOS Assistant 🚀"
+    else:
+        return f"🤖 I understood: '{msg}'"
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/",response_class=HTMLResponse)
 async def home():
 
-    global assistant_message
-
     cursor.execute(
-        "SELECT id, task, completed FROM tasks"
+        "SELECT id,task,completed FROM tasks"
     )
 
-    tasks = cursor.fetchall()
+    tasks=cursor.fetchall()
 
-    completed_count = 0
-    task_html = ""
+    completed=0
+    task_html=""
 
     for task in tasks:
 
-        checked = ""
+        checked=""
 
-        if task[2] == 1:
-            checked = "checked"
-            completed_count += 1
+        if task[2]==1:
+            checked="checked"
+            completed+=1
 
         task_html += f"""
         <div class='task-card'>
-            <div>
-            <input
-            type='checkbox'
-            onclick="window.location='/toggle/{task[0]}'"
-            {checked}>
-            {task[1]}
-            </div>
 
-            <a href='/delete/{task[0]}'>
-            <button>Delete</button>
-            </a>
+        <div>
+        <input
+        type='checkbox'
+        onclick="window.location='/toggle/{task[0]}'"
+        {checked}>
+        {task[1]}
+        </div>
+
+        <a href='/delete/{task[0]}'>
+        <button>Delete</button>
+        </a>
 
         </div>
         """
 
-    html = f"""
+    chat_html=""
 
-<!DOCTYPE html>
+    for c in chat_history:
+        chat_html+=f"<p>{c}</p>"
+
+
+    return HTMLResponse(f"""
 
 <html>
 
 <head>
-
-<title>Life Command Center</title>
 
 <style>
 
@@ -103,18 +103,12 @@ margin:0;
 font-family:Arial;
 background:#0f172a;
 color:white;
-transition:0.5s;
-}}
-
-.light{{
-background:white;
-color:black;
 }}
 
 .sidebar{{
 position:fixed;
 width:220px;
-height:100vh;
+height:100%;
 background:#1e293b;
 padding:20px;
 }}
@@ -134,9 +128,8 @@ margin-bottom:20px;
 .task-card{{
 display:flex;
 justify-content:space-between;
-align-items:center;
+padding:12px;
 background:#334155;
-padding:15px;
 margin-top:10px;
 border-radius:10px;
 }}
@@ -145,7 +138,9 @@ border-radius:10px;
 position:fixed;
 right:20px;
 bottom:20px;
-width:300px;
+width:320px;
+height:420px;
+overflow:auto;
 background:#1e293b;
 padding:20px;
 border-radius:20px;
@@ -155,36 +150,17 @@ button{{
 padding:10px;
 border:none;
 border-radius:10px;
-cursor:pointer;
-}}
-
-input[name='task']{{
-padding:10px;
-width:300px;
-border-radius:10px;
-border:none;
-}}
-
-progress{{
-width:100%;
-height:20px;
 }}
 
 </style>
 
 </head>
 
-<body id="body">
+<body>
 
 <div class="sidebar">
 
 <h2>🚀 LifeOS</h2>
-
-<button onclick="toggleTheme()">
-Dark/Light
-</button>
-
-<h3 id="clock"></h3>
 
 </div>
 
@@ -192,31 +168,21 @@ Dark/Light
 
 <div class="card">
 
-<h2 id="greeting"></h2>
-
 <h1>Life Command Center</h1>
 
-<h3>Total Tasks: {len(tasks)}</h3>
+<h3>Tasks:{len(tasks)}</h3>
 
-<h3>
-Completed: {completed_count}/{len(tasks)}
-</h3>
-
-<progress
-value="{completed_count}"
-max="{max(1,len(tasks))}">
-</progress>
-
-<br><br>
+<h3>Completed:{completed}</h3>
 
 <form action="/add" method="post">
 
 <input
 name="task"
-placeholder="Enter task"
 required>
 
-<button>Add Task</button>
+<button>
+Add Task
+</button>
 
 </form>
 
@@ -224,25 +190,19 @@ required>
 
 <div class="card">
 
-<h2>Your Tasks</h2>
-
 {task_html}
 
 </div>
 
 </div>
 
-
 <div class="ai-box">
 
 <h3>🤖 Life Assistant</h3>
 
-<p>{assistant_message}</p>
+{chat_html}
 
-<form
-action="/chat"
-method="post"
->
+<form action="/chat" method="post">
 
 <input
 name="message"
@@ -257,60 +217,28 @@ Send
 
 </div>
 
-
-<script>
-
-function toggleTheme(){{
-document.getElementById(
-"body"
-).classList.toggle(
-"light"
-)
-}}
-
-setInterval(()=>{{
-
-document.getElementById(
-"clock"
-).innerHTML=
-new Date().toLocaleTimeString()
-
-}},1000)
-
-
-let h=new Date().getHours()
-
-let msg="Good Evening"
-
-if(h<12)
-msg="Good Morning"
-
-else if(h<18)
-msg="Good Afternoon"
-
-document.getElementById(
-"greeting"
-).innerHTML=msg
-
-</script>
-
 </body>
 
 </html>
-"""
 
-    return HTMLResponse(html)
+""")
 
 
 @app.post("/chat")
 async def chat(message:str=Form(...)):
 
-    global assistant_message
+    reply=ai_reply(message)
 
-    assistant_message = ai_reply(message)
+    chat_history.append(
+    f"<b>You:</b> {message}"
+    )
+
+    chat_history.append(
+    f"<b>AI:</b> {reply}"
+    )
 
     return HTMLResponse(
-        "<script>window.location.href='/'</script>"
+    "<script>window.location.href='/'</script>"
     )
 
 
@@ -318,14 +246,14 @@ async def chat(message:str=Form(...)):
 async def add(task:str=Form(...)):
 
     cursor.execute(
-        "INSERT INTO tasks(task) VALUES(?)",
-        (task,)
+    "INSERT INTO tasks(task) VALUES(?)",
+    (task,)
     )
 
     conn.commit()
 
     return HTMLResponse(
-        "<script>window.location.href='/'</script>"
+    "<script>window.location.href='/'</script>"
     )
 
 
@@ -333,14 +261,14 @@ async def add(task:str=Form(...)):
 async def delete(id:int):
 
     cursor.execute(
-        "DELETE FROM tasks WHERE id=?",
-        (id,)
+    "DELETE FROM tasks WHERE id=?",
+    (id,)
     )
 
     conn.commit()
 
     return HTMLResponse(
-        "<script>window.location.href='/'</script>"
+    "<script>window.location.href='/'</script>"
     )
 
 
@@ -348,17 +276,20 @@ async def delete(id:int):
 async def toggle(id:int):
 
     cursor.execute("""
+
     UPDATE tasks
     SET completed=
     CASE
-    WHEN completed=0 THEN 1
+    WHEN completed=0
+    THEN 1
     ELSE 0
     END
     WHERE id=?
+
     """,(id,))
 
     conn.commit()
 
     return HTMLResponse(
-        "<script>window.location.href='/'</script>"
+    "<script>window.location.href='/'</script>"
     )

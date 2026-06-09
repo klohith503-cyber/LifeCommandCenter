@@ -2,29 +2,70 @@
 <html>
 <head>
 <title>Life Command Center</title>
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#f5f7fb;
+padding:30px;
+}
+.container{
+max-width:800px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:20px;
+box-shadow:0px 4px 20px rgba(0,0,0,0.1);
+}
+h1{
+text-align:center;
+}
+.input-area{
+display:flex;
+gap:10px;
+}
+input{
+flex:1;
+padding:12px;
+border-radius:10px;
+border:1px solid gray;
+font-size:16px;
+}
+button{
+padding:12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:16px;
+}
+.task{
+background:#eef2ff;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+}
+</style>
 </head>
 <body>
-<h1>Life Command Center</h1>
-<input id="task" placeholder="Enter task">
-<button onclick="saveTask()">Add Task</button>
-<h2>Tasks</h2>
-<ul>
+<div class="container">
+<h1>🚀 Life Command Center</h1>
+<form action="/add" method="post">
+<div class="input-area">
+<input
+name="task"
+placeholder="Enter your task"
+required
+>
+<button type="submit">
+Add Task
+</button>
+</div>
+</form>
+<h2>Your Tasks</h2>
 {% for task in tasks %}
-<li>{{task}}</li>
+<div class="task">
+{{task}}
+</div>
 {% endfor %}
-</ul>
-<script>
-async function saveTask(){
-let task=document.getElementById("task").value;
-await fetch("/add",{
-method:"POST",
-headers:{
-"Content-Type":"application/x-www-form-urlencoded"
-},
-body:"task="+encodeURIComponent(task)
-});
-window.location.reload();
-}
-</script>
+</div>
 </body>
 </html>

@@ -6,22 +6,14 @@ import os
 
 app = FastAPI()
 
-# ---------------- AI ----------------
-
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
-
-chat_history=[]
-
-# ---------------- Database ----------------
+# ================= DATABASE =================
 
 conn = sqlite3.connect(
     "life.db",
     check_same_thread=False
 )
 
-cursor=conn.cursor()
+cursor = conn.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS tasks(
@@ -33,32 +25,54 @@ completed INTEGER DEFAULT 0
 
 conn.commit()
 
+# ================= OPENAI =================
 
-# ---------------- Home ----------------
+api_key = os.getenv("OPENAI_API_KEY")
 
-@app.get("/",response_class=HTMLResponse)
+client = None
+
+if api_key:
+    client = OpenAI(
+        api_key=api_key
+    )
+
+# ================= CHAT STORAGE =================
+
+chat_history = []
+
+# ================= HOME =================
+
+@app.get("/", response_class=HTMLResponse)
 async def home():
 
     cursor.execute(
         "SELECT id,task,completed FROM tasks"
     )
 
-    tasks=cursor.fetchall()
+    tasks = cursor.fetchall()
 
-    completed=0
-    task_html=""
+    completed = 0
+
+    task_html = ""
 
     for task in tasks:
 
-        checked=""
+        checked = ""
 
-        if task[2]==1:
-            checked="checked"
-            completed+=1
+        if task[2] == 1:
+            checked = "checked"
+            completed += 1
 
-        task_html+=f"""
+        task_html += f"""
 
-<div class='task-card'>
+<div style="
+background:#334155;
+padding:15px;
+margin:10px;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+">
 
 <div>
 
@@ -72,7 +86,7 @@ onclick="window.location='/toggle/{task[0]}'"
 
 </div>
 
-<a href='/delete/{task[0]}'>
+<a href="/delete/{task[0]}">
 
 <button>
 
@@ -90,8 +104,9 @@ Delete
 
     for msg in chat_history:
 
-        chat_html+=f"<p>{msg}</p>"
-
+        chat_html += f"""
+        <p>{msg}</p>
+        """
 
     return HTMLResponse(f"""
 
@@ -99,17 +114,20 @@ Delete
 
 <head>
 
+<title>Life Command Center</title>
+
 <style>
 
 body{{
-margin:0;
 background:#0f172a;
 font-family:Arial;
 color:white;
+margin:0;
 }}
 
 .sidebar{{
 position:fixed;
+left:0;
 width:220px;
 height:100%;
 background:#1e293b;
@@ -117,7 +135,7 @@ padding:20px;
 }}
 
 .content{{
-margin-left:260px;
+margin-left:250px;
 padding:30px;
 }}
 
@@ -128,20 +146,11 @@ border-radius:20px;
 margin-bottom:20px;
 }}
 
-.task-card{{
-display:flex;
-justify-content:space-between;
-padding:15px;
-background:#334155;
-margin-top:10px;
-border-radius:10px;
-}}
-
-.ai-box{{
+.ai{{
 position:fixed;
 right:20px;
 bottom:20px;
-width:350px;
+width:330px;
 height:450px;
 overflow:auto;
 background:#1e293b;
@@ -153,6 +162,12 @@ button{{
 padding:10px;
 border:none;
 border-radius:10px;
+cursor:pointer;
+}}
+
+input{{
+padding:10px;
+border-radius:10px;
 }}
 
 </style>
@@ -163,7 +178,9 @@ border-radius:10px;
 
 <div class="sidebar">
 
-<h2>🚀 LifeOS</h2>
+<h2>
+🚀 LifeOS
+</h2>
 
 </div>
 
@@ -171,25 +188,28 @@ border-radius:10px;
 
 <div class="card">
 
-<h1>Life Command Center</h1>
+<h1>
+Life Command Center
+</h1>
 
-<h3>Total Tasks:
-{len(tasks)}
+<h3>
+Tasks: {len(tasks)}
 </h3>
 
-<h3>Completed:
-{completed}
+<h3>
+Completed: {completed}
 </h3>
 
 <form action="/add" method="post">
 
 <input
 name="task"
+placeholder="New task"
 required>
 
 <button>
 
-Add Task
+Add
 
 </button>
 
@@ -197,7 +217,12 @@ Add Task
 
 </div>
 
+
 <div class="card">
+
+<h2>
+Task List
+</h2>
 
 {task_html}
 
@@ -206,9 +231,11 @@ Add Task
 </div>
 
 
-<div class="ai-box">
+<div class="ai">
 
-<h3>🤖 AI Assistant</h3>
+<h3>
+🤖 AI Assistant
+</h3>
 
 {chat_html}
 
@@ -219,7 +246,7 @@ method="post"
 
 <input
 name="message"
-placeholder="Ask anything..."
+placeholder="Ask anything"
 required>
 
 <button>
@@ -239,93 +266,115 @@ Send
 """)
 
 
-# ---------------- Chat ----------------
+# ================= CHAT =================
 
 @app.post("/chat")
-async def chat(message:str=Form(...)):
+async def chat(message: str = Form(...)):
+
+    global chat_history
 
     if client:
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {
-                "role":"user",
-                "content":message
-            }
-        ]
-    )
+        try:
 
-    answer = response.choices[0].message.content
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role":"user",
+                        "content":message
+                    }
+                ]
+            )
 
-else:
+            answer = response.choices[0].message.content
 
-    answer = "⚠️ OpenAI API key not added yet. Add OPENAI_API_KEY in Render Environment."
+        except Exception as e:
+
+            answer = f"AI Error: {str(e)}"
+
+    else:
+
+        answer = "⚠️ OPENAI_API_KEY not configured."
 
     chat_history.append(
-    f"<b>You:</b> {message}"
+        f"<b>You:</b> {message}"
     )
 
     chat_history.append(
-    f"<b>AI:</b> {answer}"
+        f"<b>AI:</b> {answer}"
     )
 
     return HTMLResponse(
-    "<script>window.location.href='/'</script>"
+        "<script>window.location.href='/'</script>"
     )
 
 
-# ---------------- Add Task ----------------
+# ================= ADD =================
 
 @app.post("/add")
 async def add(task:str=Form(...)):
 
     cursor.execute(
-    "INSERT INTO tasks(task) VALUES(?)",
-    (task,)
+        "INSERT INTO tasks(task) VALUES(?)",
+        (task,)
     )
 
     conn.commit()
 
     return HTMLResponse(
-    "<script>window.location.href='/'</script>"
+        "<script>window.location.href='/'</script>"
     )
 
 
-# ---------------- Delete ----------------
+# ================= DELETE =================
 
 @app.get("/delete/{id}")
 async def delete(id:int):
 
     cursor.execute(
-    "DELETE FROM tasks WHERE id=?",
+        "DELETE FROM tasks WHERE id=?",
+        (id,)
+    )
+
+    conn.commit()
+
+    return HTMLResponse(
+        "<script>window.location.href='/'</script>"
+    )
+
+
+# ================= TOGGLE =================
+
+@app.get("/toggle/{id}")
+async def toggle(id:int):
+
+    cursor.execute(
+    """
+
+    UPDATE tasks
+
+    SET completed=
+
+    CASE
+
+    WHEN completed=0
+
+    THEN 1
+
+    ELSE 0
+
+    END
+
+    WHERE id=?
+
+    """,
+
     (id,)
     )
 
     conn.commit()
 
     return HTMLResponse(
-    "<script>window.location.href='/'</script>"
-    )
-
-
-# ---------------- Toggle ----------------
-
-@app.get("/toggle/{id}")
-async def toggle(id:int):
-
-    cursor.execute("""
-    UPDATE tasks
-    SET completed=
-    CASE
-    WHEN completed=0 THEN 1
-    ELSE 0
-    END
-    WHERE id=?
-    """,(id,))
-
-    conn.commit()
-
-    return HTMLResponse(
-    "<script>window.location.href='/'</script>"
+        "<script>window.location.href='/'</script>"
     )
